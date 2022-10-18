@@ -24,12 +24,13 @@ import numpy as np
 from scipy import special
 from sklearn import metrics
 from sklearn import model_selection
-
+from tensorflow_privacy.privacy.privacy_tests import epsilon_lower_bound as elb
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import models
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResults
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackType
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import DataSize
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import EpsilonLowerBoundValue
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import MembershipProbabilityResults
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import PrivacyReportMetadata
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import RocCurve
@@ -122,14 +123,21 @@ def _run_trained_attack(attack_input: AttackInputData,
       thresholds=thresholds,
       test_train_ratio=test_train_ratio)
 
-  in_train_indices = (labels == 0)
+  in_train_indices = (labels == 0)  # 0 for member, 1 for nonmember
+  epsilon_lower_bound_value = EpsilonLowerBoundValue(
+      bounds=elb.EpsilonLowerBound(
+          pos_scores=scores[in_train_indices],
+          neg_scores=scores[~in_train_indices],
+          alpha=0.05,
+          two_sided_threshold=True).compute_epsilon_lower_bounds(k=5))
   return SingleAttackResult(
       slice_spec=_get_slice_spec(attack_input),
       data_size=prepared_attacker_data.data_size,
       attack_type=attack_type,
       membership_scores_train=scores[in_train_indices],
       membership_scores_test=scores[~in_train_indices],
-      roc_curve=roc_curve)
+      roc_curve=roc_curve,
+      epsilon_lower_bound_value=epsilon_lower_bound_value)
 
 
 def _run_threshold_attack(attack_input: AttackInputData):
@@ -157,13 +165,21 @@ def _run_threshold_attack(attack_input: AttackInputData):
       thresholds=thresholds,
       test_train_ratio=test_train_ratio)
 
+  epsilon_lower_bound_value = EpsilonLowerBoundValue(
+      bounds=elb.EpsilonLowerBound(
+          pos_scores=loss_train,
+          neg_scores=loss_test,
+          alpha=0.05,
+          two_sided_threshold=True).compute_epsilon_lower_bounds(k=5))
+
   return SingleAttackResult(
       slice_spec=_get_slice_spec(attack_input),
       data_size=DataSize(ntrain=ntrain, ntest=ntest),
       attack_type=AttackType.THRESHOLD_ATTACK,
       membership_scores_train=attack_input.get_loss_train(),
       membership_scores_test=attack_input.get_loss_test(),
-      roc_curve=roc_curve)
+      roc_curve=roc_curve,
+      epsilon_lower_bound_value=epsilon_lower_bound_value)
 
 
 def _run_threshold_entropy_attack(attack_input: AttackInputData):
@@ -185,14 +201,20 @@ def _run_threshold_entropy_attack(attack_input: AttackInputData):
       fpr=fpr,
       thresholds=thresholds,
       test_train_ratio=test_train_ratio)
-
+  epsilon_lower_bound_value = EpsilonLowerBoundValue(
+      bounds=elb.EpsilonLowerBound(
+          pos_scores=attack_input.get_entropy_train(),
+          neg_scores=attack_input.get_entropy_test(),
+          alpha=0.05,
+          two_sided_threshold=True).compute_epsilon_lower_bounds(k=5))
   return SingleAttackResult(
       slice_spec=_get_slice_spec(attack_input),
       data_size=DataSize(ntrain=ntrain, ntest=ntest),
       attack_type=AttackType.THRESHOLD_ENTROPY_ATTACK,
       membership_scores_train=-attack_input.get_entropy_train(),
       membership_scores_test=-attack_input.get_entropy_test(),
-      roc_curve=roc_curve)
+      roc_curve=roc_curve,
+      epsilon_lower_bound_value=epsilon_lower_bound_value)
 
 
 def _run_attack(attack_input: AttackInputData,

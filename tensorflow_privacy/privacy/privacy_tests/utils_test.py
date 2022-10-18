@@ -17,7 +17,7 @@ from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
-
+import parameterized as pmt
 from tensorflow_privacy.privacy.privacy_tests import utils
 
 
@@ -278,6 +278,49 @@ class TestGetLoss(parameterized.TestCase):
         mock_multilabel_bce_loss.assert_called_once()
     else:
       mock_squared_loss.assert_called_once()
+
+
+@pmt.parameterized_class(
+    ('input_list', 'precision', 'expected_output'),
+    [
+        # integer list, one element
+        ([1], 0, '1'),
+        ([-1], 1, '-1.0'),
+        # integer list, multiple elements
+        ([1, 2, 3], 0, '1, 2, 3'),
+        ([-1, 2, -3], 1, '-1.0, 2.0, -3.0'),
+        # float list, one element
+        ([1.1], 0, '1'),
+        ([1.1], 1, '1.1'),
+        ([-1.1], 3, '-1.100'),
+        # float and integer combined, multiple elements
+        ([0, 1.1, 2.22, 3.333], 0, '0, 1, 2, 3'),
+        ([0, 1.1, -2.22, 3.333], 1, '0.0, 1.1, -2.2, 3.3'),
+        ([0, 1.1, 2.22, 3.333], 3, '0.000, 1.100, 2.220, 3.333'),
+        # inf and nan
+        ([np.inf, 1, -2.22, -np.inf, np.nan], 1, 'inf, 1.0, -2.2, -inf, nan'),
+        # empty list
+        ([], 1, ''),
+        # terables other than list
+        ((np.inf, 1, 2.2), 0, 'inf, 1, 2'),
+        (range(-1, 3), 1, '-1.0, 0.0, 1.0, 2.0')
+    ])
+class TestPrintNumberList(parameterized.TestCase):
+
+  def test_format_list(self):
+    self.assertEqual(
+        utils.format_number_list(self.input_list, self.precision),
+        self.expected_output)
+
+  def test_format_iterator(self):
+    self.assertEqual(
+        utils.format_number_list(iter(self.input_list), self.precision),
+        self.expected_output)
+
+  def test_format_numpy_array(self):
+    self.assertEqual(
+        utils.format_number_list(np.array(self.input_list), self.precision),
+        self.expected_output)
 
 
 if __name__ == '__main__':

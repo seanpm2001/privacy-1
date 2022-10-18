@@ -14,12 +14,13 @@
 
 from absl.testing import absltest
 import numpy as np
-
+from tensorflow_privacy.privacy.privacy_tests import epsilon_lower_bound as elb
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import privacy_report
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResults
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResultsCollection
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackType
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import DataSize
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import EpsilonLowerBoundValue
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import PrivacyReportMetadata
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import RocCurve
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import SingleAttackResult
@@ -40,6 +41,11 @@ class PrivacyReportTest(absltest.TestCase):
             fpr=np.array([0.0, 0.5, 1.0]),
             thresholds=np.array([0, 1, 2]),
             test_train_ratio=1.0),
+        epsilon_lower_bound_value=EpsilonLowerBoundValue(
+            bounds={
+                elb.BoundMethod.KATZ_LOG: np.array([-2, -2.]),
+                elb.BoundMethod.ADJUSTED_LOG: np.array([]),
+            }),
         data_size=DataSize(ntrain=1, ntest=1))
 
     # Classifier that achieves an AUC of 1.0.
@@ -51,6 +57,11 @@ class PrivacyReportTest(absltest.TestCase):
             fpr=np.array([1.0, 1.0, 0.0]),
             thresholds=np.array([0, 1, 2]),
             test_train_ratio=1.0),
+        epsilon_lower_bound_value=EpsilonLowerBoundValue(
+            bounds={
+                elb.BoundMethod.KATZ_LOG: np.array([-2, -2.]),
+                elb.BoundMethod.ADJUSTED_LOG: np.array([10, 1.]),
+            }),
         data_size=DataSize(ntrain=1, ntest=1))
 
     self.results_epoch_0 = AttackResults(
