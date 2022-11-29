@@ -15,6 +15,11 @@ py_library(
         "dp_keras_model.py",
     ],
     srcs_version = "PY3",
+    deps = [
+        "//tensorflow_privacy/privacy/gradient_clipping:clip_grads",
+        "//tensorflow_privacy/privacy/gradient_clipping:layer_registry",
+        "//tensorflow_privacy/privacy/gradient_clipping:utils",
+    ],
 )
 
 py_test(
@@ -22,5 +27,8 @@ py_test(
     srcs = ["dp_keras_model_test.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = ["//tensorflow_privacy/privacy/keras_models:dp_keras_model"],
+    deps = [
+        "//tensorflow_privacy/privacy/gradient_clipping:layer_registry",
+        "//tensorflow_privacy/privacy/keras_models:dp_keras_model",
+    ],
 )
